@@ -31,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.onboardingscreen.R
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.android.onboardingscreen.data.DataStoreManager
 
 val InstrumentSans = FontFamily(
     Font(R.font.instrument_sans_semibold, FontWeight.SemiBold)
@@ -43,6 +46,8 @@ fun OnBoarding(
     val scope = rememberCoroutineScope()
     val items = OnBoardingItem.get()
     val state = rememberPagerState(pageCount = { items.size })
+    val context = LocalContext.current
+    val dataStoreManager = remember { DataStoreManager(context) }
 
     LaunchedEffect(Unit) {
         Log.d("Navigation", "OnBoarding screen composed")
@@ -122,7 +127,10 @@ fun OnBoarding(
                                 state.animateScrollToPage(state.currentPage + 1)
                             }
                         } else {
-                            onNavigateToAuth()
+                            scope.launch {
+                                dataStoreManager.setOnboardingCompleted()
+                                onNavigateToAuth()
+                            }
                         }
                     }
                 )

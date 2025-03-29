@@ -1,6 +1,8 @@
 // screens/home/HomeScreen.kt
 package com.android.onboardingscreen.screens.home
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -28,16 +30,42 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.onboardingscreen.R
+import androidx.compose.foundation.clickable
+import com.android.onboardingscreen.components.EventDetailSheet
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(modifier: Modifier = Modifier) {
     val instrumentSans = FontFamily(
         Font(R.font.instrument_sans_semibold, FontWeight.SemiBold)
     )
+    var showEventDetail by remember { mutableStateOf(false) }
+    var selectedEvent by remember { mutableStateOf<FeaturedEventData?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(0) }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
     val tabs = listOf("All", "Upcoming", "Past")
+
+    // Create functions to handle both types of events
+    fun showFeaturedEventDetail(event: FeaturedEventData) {
+        selectedEvent = event
+        showEventDetail = true
+    }
+
+    fun showEventDetail(event: EventData) {
+        selectedEvent = FeaturedEventData(
+            name = event.name,
+            date = event.date,
+            startLocation = "Location", // Default location
+            trackType = "Standard",     // Default track type
+            averageSpeed = "N/A",
+            distance = event.distance,
+            backgroundColor = Color(0xFF1E7A56),
+            category = event.category
+        )
+        showEventDetail = true
+    }
 
     // Adventure theme colors
     val primaryGreen = Color(0xFF1E7A56)
@@ -48,48 +76,130 @@ fun HomeScreen() {
 
     val featuredEvents = remember {
         listOf(
+            // Sports Events
             FeaturedEventData(
                 "Camp Carnelley's",
-                "16 Mar 2025",
+                "16 Mar 2025",  // Make sure dates follow the format "d MMM yyyy"
                 "Lower Kwa Muhia",
                 "Circular",
                 "10 km/h",
                 "32.3 km",
-                Color(0xFF1F2937)
+                Color(0xFF1F2937),
+                "Sports"
             ),
             FeaturedEventData(
-                "Mt. Longonot Hike",
-                "22 Apr 2025",
-                "Naivasha Town",
-                "Linear",
+                "Mt. Longonot Festival",  // Changed name to include "Festival"
+                "15 Mar 2025",
+                "Mt. Longonot",
+                "Mountain Trail",
                 "5 km/h",
-                "45.0 km",
-                darkBrown
+                "15.0 km",
+                Color(0xFF1E7A56),
+                "Adventure"
             ),
+            // Cultural Events
             FeaturedEventData(
-                "Lake Nakuru Safari",
-                "05 May 2025",
-                "Nakuru Gate",
+                "Maasai Cultural Festival",
+                "15 May 2025",
+                "Maasai Mara",
                 "Circular",
-                "8 km/h",
-                "28.7 km",
-                primaryGreen.copy(alpha = 0.8f)
+                "3 km/h",
+                "5.0 km",
+                sunsetOrange,
+                "Cultural"
+            ),
+            // Academic Events
+            FeaturedEventData(
+                "Tech Innovation Summit",
+                "30 Mar 2025",
+                "KICC Nairobi",
+                "Indoor",
+                "N/A",
+                "1.0 km",
+                skyBlue,
+                "Academic"
+            ),
+            // Tech Events
+            FeaturedEventData(
+                "Coding Bootcamp",
+                "10 Apr 2025",
+                "iHub Nairobi",
+                "Indoor",
+                "N/A",
+                "0.5 km",
+                Color(0xFF6200EA),
+                "Tech"
+            ),
+            // Music Events
+            FeaturedEventData(
+                "Jazz Festival",
+                "25 May 2025",
+                "Carnivore Grounds",
+                "Circular",
+                "2 km/h",
+                "3.0 km",
+                Color(0xFFE91E63),
+                "Music"
+            ),
+            // Culinary Events
+            FeaturedEventData(
+                "Food & Wine Festival",
+                "8 Jun 2025",
+                "Westlands",
+                "Indoor",
+                "N/A",
+                "2.0 km",
+                Color(0xFFFF6F00),
+                "Culinary"
+            ),
+            // Career Events
+            FeaturedEventData(
+                "Job Fair 2025",
+                "12 Apr 2025",
+                "SARIT Centre",
+                "Indoor",
+                "N/A",
+                "1.5 km",
+                Color(0xFF2E7D32),
+                "Career"
+            ),
+            // Volunteer Events
+            FeaturedEventData(
+                "Tree Planting Drive",
+                "20 Apr 2025",
+                "Karura Forest",
+                "Linear",
+                "4 km/h",
+                "8.0 km",
+                primaryGreen.copy(alpha = 0.8f),
+                "Volunteer"
+            ),
+            // Club Events
+            FeaturedEventData(
+                "Book Club Meeting",
+                "5 May 2025",
+                "Alliance Française",
+                "Indoor",
+                "N/A",
+                "0.3 km",
+                Color(0xFF795548),
+                "Club"
             )
         )
     }
 
     val allEvents = remember {
         listOf(
-            EventData("Camp Carnelley's", "16 Mar 2025", "32.3 km", EventStatus.OPEN),
-            EventData("Lake Naivasha Resort", "22 Apr 2025", "45.0 km", EventStatus.OPEN),
-            EventData("Hell's Gate National Park", "05 May 2025", "28.7 km", EventStatus.OPEN),
-            EventData("Mt. Longonot Hike", "18 Jun 2025", "56.2 km", EventStatus.OPEN),
-            EventData("Nairobi National Park", "10 Jan 2025", "15.4 km", EventStatus.CLOSED)
+            EventData("Camp Carnelley's", "16 Mar 2025", "32.3 km", EventStatus.OPEN, "Sports"),
+            EventData("Lake Naivasha Resort", "22 Apr 2025", "45.0 km", EventStatus.OPEN, "Cultural"),
+            EventData("Hell's Gate National Park", "05 May 2025", "28.7 km", EventStatus.OPEN, "Sports"),
+            EventData("Mt. Longonot Hike", "18 Jun 2025", "56.2 km", EventStatus.OPEN, "Sports"),
+            EventData("Nairobi National Park", "10 Jan 2025", "15.4 km", EventStatus.CLOSED, "Cultural")
         )
     }
 
-    // Filter events based on search query and selected tab
-    val filteredEvents = remember(searchQuery, selectedTab) {
+    // Filter events based on search query, selected tab, and category
+    val filteredEvents = remember(searchQuery, selectedTab, selectedCategory) {
         allEvents.filter { event ->
             val matchesSearch = event.name.contains(searchQuery, ignoreCase = true)
             val matchesTab = when (selectedTab) {
@@ -98,18 +208,26 @@ fun HomeScreen() {
                 2 -> event.status == EventStatus.CLOSED // Past
                 else -> true
             }
-            matchesSearch && matchesTab
+            val matchesCategory = selectedCategory?.let { event.category == it } ?: true
+            matchesSearch && matchesTab && matchesCategory
+        }
+    }
+
+    // Filter featured events based on selected category
+    val filteredFeaturedEvents = remember(selectedCategory) {
+        when (selectedCategory) {
+            null -> featuredEvents // Show all featured events when no category is selected
+            else -> featuredEvents.filter { it.category == selectedCategory }
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Adjust to minimize space at top
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize(),
-            contentPadding = PaddingValues(top = 0.dp)
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = 0.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp) // Remove default spacing
         ) {
-            // Top Bar - no top padding
+            // Top Bar
             item {
                 TopAppBar(
                     title = {
@@ -130,7 +248,6 @@ fun HomeScreen() {
                                     tint = darkBrown
                                 )
                             }
-                            // Green notification indicator (adjusted position)
                             Box(
                                 modifier = Modifier
                                     .size(8.dp)
@@ -145,36 +262,71 @@ fun HomeScreen() {
                 )
             }
 
-            // Featured event carousel
+            // Categories section
             item {
-                Text(
-                    text = "Featured Adventures",
-                    fontFamily = instrumentSans,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 18.sp,
-                    color = darkBrown,
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+                val categories = listOf(
+                    "All",  // Added "All" as the first category
+                    "Academic", "Sports", "Cultural", "Club", "Career",
+                    "Volunteer", "Tech", "Music", "Culinary"
                 )
-
+                
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 4.dp) // Reduced padding
                 ) {
-                    items(featuredEvents) { event ->
-                        FeaturedEventCard(event)
+                    items(categories) { category ->
+                        Box(
+                            modifier = Modifier
+                                .border(
+                                    width = 2.dp,
+                                    color = if (selectedCategory == category) primaryGreen else primaryGreen.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(30)
+                                )
+                                .clip(RoundedCornerShape(10))
+                                .clickable { 
+                                    selectedCategory = when (category) {
+                                        "All" -> null  // Set to null when "All" is selected
+                                        else -> if (selectedCategory == category) null else category
+                                    }
+                                }
+                                .background(
+                                    if (selectedCategory == category || (category == "All" && selectedCategory == null)) 
+                                        primaryGreen.copy(alpha = 0.1f) 
+                                    else 
+                                        Color.Transparent
+                                )
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = category,
+                                color = if (selectedCategory == category || (category == "All" && selectedCategory == null)) 
+                                    primaryGreen 
+                                else 
+                                    darkBrown,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
-
-            // Search bar with 100% rounded corners
+            
+            // Search bar
             item {
-                OutlinedTextField(
+                TextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
-                    placeholder = { Text("Search Adventure...", color = lightBrown) },
+                        .padding(horizontal = 16.dp, vertical = 4.dp), // Reduced padding
+                    placeholder = { 
+                        Text(
+                            "Search Adventure...", 
+                            color = lightBrown,
+                            fontWeight = FontWeight.SemiBold
+                        ) 
+                    },
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
@@ -182,13 +334,41 @@ fun HomeScreen() {
                             tint = primaryGreen
                         )
                     },
-                    shape = CircleShape,
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        unfocusedBorderColor = lightBrown,
-                        focusedBorderColor = primaryGreen
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                        focusedContainerColor = Color(0xFFF5F5F5),
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent
                     ),
                     singleLine = true
                 )
+            }
+
+            // Featured event carousel
+            item {
+                if (filteredFeaturedEvents.isNotEmpty()) {
+                    Text(
+                        text = "Featured",
+                        fontFamily = instrumentSans,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp,
+                        color = darkBrown,
+                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp) // Reduced padding
+                    )
+
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(filteredFeaturedEvents) { event ->
+                            FeaturedEventCard(
+                                event = event,
+                                onClick = { showFeaturedEventDetail(event) }
+                            )
+                        }
+                    }
+                }
             }
 
             // Scrollable tab row
@@ -229,12 +409,25 @@ fun HomeScreen() {
 
             // List of filtered events
             items(filteredEvents) { event ->
-                EventListItem(event, primaryGreen, darkBrown, lightBrown)
+                EventListItem(
+                    event = event,
+                    primaryGreen = primaryGreen,
+                    darkBrown = darkBrown,
+                    lightBrown = lightBrown,
+                    onClick = { showEventDetail(event) }
+                )
             }
 
-            // Add empty space at the bottom for better scrolling experience
+            // Add empty space at the bottom
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
+    }
+
+    if (showEventDetail && selectedEvent != null) {
+        EventDetailSheet(
+            event = selectedEvent!!,
+            onDismiss = { showEventDetail = false }
+        )
     }
 }
 
@@ -245,14 +438,16 @@ data class FeaturedEventData(
     val trackType: String,
     val averageSpeed: String,
     val distance: String,
-    val backgroundColor: Color
+    val backgroundColor: Color,
+    val category: String  // Add category field
 )
 
 data class EventData(
     val name: String,
     val date: String,
     val distance: String,
-    val status: EventStatus
+    val status: EventStatus,
+    val category: String
 )
 
 enum class EventStatus {
@@ -261,11 +456,20 @@ enum class EventStatus {
 }
 
 @Composable
-fun FeaturedEventCard(event: FeaturedEventData) {
+fun FeaturedEventCard(
+    event: FeaturedEventData,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .width(300.dp)
-            .height(190.dp),  // Increased height to 190dp
+            .height(190.dp)
+            .clickable(onClick = onClick)
+            .border(
+                width = 1.dp,
+                color = Color.Black.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(16.dp)
+            ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = event.backgroundColor
@@ -276,9 +480,7 @@ fun FeaturedEventCard(event: FeaturedEventData) {
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Column(
-                modifier = Modifier.align(Alignment.TopStart)
-            ) {
+            Column {
                 Text(
                     text = event.name,
                     color = Color.White,
@@ -286,136 +488,52 @@ fun FeaturedEventCard(event: FeaturedEventData) {
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.calendar_icon),
-                        contentDescription = "Date",
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Date: ${event.date}",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.location_icon),
-                        contentDescription = "Location",
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Start: ${event.startLocation}",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.track_icon),
-                        contentDescription = "Track",
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Track Type: ${event.trackType}",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.speed_icon),
-                        contentDescription = "Speed",
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Avg Speed: ${event.averageSpeed}",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.align(Alignment.TopEnd)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFF4CAF50), CircleShape)
-                        .size(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.location_pin),
-                        contentDescription = "Location Pin",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = event.distance,
-                    color = Color.White,
+                    text = event.date,
+                    color = Color.White.copy(alpha = 0.8f),
                     fontSize = 14.sp
                 )
+
+                Text(
+                    text = event.startLocation,
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 14.sp
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = { /* TODO */ },
+                    modifier = Modifier
+                        .height(36.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Text(
+                        text = "More...",
+                        color = Color.Black,
+                        fontSize = 14.sp
+                    )
+                }
             }
 
+            // Category chip
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .size(48.dp)
-                    .background(Color.White, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.trophy),
-                    contentDescription = "Trophy",
-                    tint = Color(0xFFFFC107),
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            Button(
-                onClick = { /* TODO */ },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .height(36.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White
-                ),
-                shape = RoundedCornerShape(18.dp)
+                    .align(Alignment.TopEnd)
+                    .background(
+                        Color.White.copy(alpha = 0.2f),
+                        RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = "More...",
-                    color = Color.Black,
-                    fontSize = 14.sp
+                    text = event.category,
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -423,12 +541,24 @@ fun FeaturedEventCard(event: FeaturedEventData) {
 }
 
 @Composable
-fun EventListItem(event: EventData, primaryGreen: Color, darkBrown: Color, lightBrown: Color) {
+fun EventListItem(
+    event: EventData,
+    primaryGreen: Color,
+    darkBrown: Color,
+    lightBrown: Color,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp)  // Increased height by 10dp
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .height(130.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = onClick)
+            .border(
+                width = 1.dp,
+                color = Color.Black.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(16.dp)
+            ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFFF5F5F5)
@@ -472,7 +602,7 @@ fun EventListItem(event: EventData, primaryGreen: Color, darkBrown: Color, light
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
-                ) {
+                ) { 
                     Icon(
                         painter = painterResource(id = R.drawable.location_pin),
                         contentDescription = "Distance",
@@ -489,7 +619,7 @@ fun EventListItem(event: EventData, primaryGreen: Color, darkBrown: Color, light
             }
 
             Column(
-                modifier = Modifier.align(Alignment.TopEnd),
+                modifier = Modifier.align(Alignment.BottomEnd),
                 horizontalAlignment = Alignment.End
             ) {
                 // Status indicator (Open or Closed)
@@ -516,18 +646,20 @@ fun EventListItem(event: EventData, primaryGreen: Color, darkBrown: Color, light
                         textAlign = TextAlign.Center
                     )
                 }
-            }
 
-            Text(
-                text = if (event.status == EventStatus.OPEN) "Open till 6 pm" else "Event ended",
-                color = lightBrown,
-                fontSize = 12.sp,
-                modifier = Modifier.align(Alignment.BottomEnd)
-            )
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = if (event.status == EventStatus.OPEN) "Open till 6 pm" else "Event ended",
+                    color = lightBrown,
+                    fontSize = 12.sp
+                )
+            }
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
@@ -535,3 +667,4 @@ fun HomeScreenPreview() {
         HomeScreen()
     }
 }
+

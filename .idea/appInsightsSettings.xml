@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.android.onboardingscreen" />
+                  <option name="mobileSdkAppId" value="1:415858809717:android:f52aed29624d47c2fed13c" />
+                  <option name="projectId" value="chuka-connect" />
+                  <option name="projectNumber" value="415858809717" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

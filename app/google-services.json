@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "415858809717",
+    "project_id": "chuka-connect",
+    "storage_bucket": "chuka-connect.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:415858809717:android:f52aed29624d47c2fed13c",
+        "android_client_info": {
+          "package_name": "com.android.onboardingscreen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyLXEL6bM7aStlX2piL5YMn4woeTm_eKo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

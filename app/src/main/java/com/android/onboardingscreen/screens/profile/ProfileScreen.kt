@@ -25,119 +25,178 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.onboardingscreen.R
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import com.android.onboardingscreen.auth.AuthenticationManager
+import com.android.onboardingscreen.navigation.Screen
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen() {
-    var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Posts", "Achievements", "Friends")
+fun ProfileScreen(navController: NavController) {
+    val context = LocalContext.current
+    val authManager = remember { AuthenticationManager(context) }
+    val currentUser = remember { FirebaseAuth.getInstance().currentUser }
+    val userEmail = currentUser?.email ?: "No email"
 
-    Box(
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        LazyColumn(
+        // Profile Image
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .clip(CircleShape)
+                .background(Color.LightGray)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.profile),
+                contentDescription = "Profile Picture",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Username (Email)
+        Text(
+            text = userEmail,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Sign out button
+        Button(
+            onClick = {
+                authManager.signOut()
+                navController.navigate(Screen.Onboarding.route) {
+                    popUpTo(Screen.Home.route) { inclusive = true }
+                }
+            }
+        ) {
+            Text("Sign Out")
+        }
+
+        var selectedTab by remember { mutableStateOf(0) }
+        val tabs = listOf("Posts", "Achievements", "Friends")
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(Color.White)
         ) {
-            // Top Bar with Edit and More Options
-            item {
-                TopAppBar(
-                    title = { },
-                    actions = {
-                        IconButton(onClick = { /* TODO */ }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Profile"
-                            )
-                        }
-                        IconButton(onClick = { /* TODO */ }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More Options"
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.White
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Top Bar with Edit and More Options
+                item {
+                    TopAppBar(
+                        title = { },
+                        actions = {
+                            IconButton(onClick = { /* TODO */ }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Profile"
+                                )
+                            }
+                            IconButton(onClick = { /* TODO */ }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "More Options"
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.White
+                        )
                     )
-                )
-            }
+                }
 
-            // Profile Section
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Profile Image
-                    Box(
+                // Profile Section
+                item {
+                    Column(
                         modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape)
-                            .background(Color.LightGray)
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.profile),
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                        // Profile Image
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .background(Color.LightGray)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.profile),
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Username
+                        Text(
+                            text = "@baraka",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Username
-                    Text(
-                        text = "@baraka",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-            }
-
-            // Tabs
-            item {
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF173753),
-                    indicator = { tabPositions ->
-                        TabRowDefaults.Indicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            height = 2.dp,
-                            color = Color(0xFF173753)
-                        )
-                    }
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = { Text(text = title) }
-                        )
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
-            }
 
-            // Content based on selected tab
-            item {
-                when (selectedTab) {
-                    0 -> PostsGrid()
-                    1 -> AchievementsGrid()
-                    2 -> FriendsGrid()
+                // Tabs
+                item {
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        containerColor = Color.White,
+                        contentColor = Color(0xFF173753),
+                        indicator = { tabPositions ->
+                            TabRowDefaults.Indicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                height = 2.dp,
+                                color = Color(0xFF173753)
+                            )
+                        }
+                    ) {
+                        tabs.forEachIndexed { index, title ->
+                            Tab(
+                                selected = selectedTab == index,
+                                onClick = { selectedTab = index },
+                                text = { Text(text = title) }
+                            )
+                        }
+                    }
                 }
-            }
 
-            // Add space at the bottom for better scrolling experience
-            item { Spacer(modifier = Modifier.height(80.dp)) }
+                // Content based on selected tab
+                item {
+                    when (selectedTab) {
+                        0 -> PostsGrid()
+                        1 -> AchievementsGrid()
+                        2 -> FriendsGrid()
+                    }
+                }
+
+                // Add space at the bottom for better scrolling experience
+                item { Spacer(modifier = Modifier.height(80.dp)) }
+            }
         }
     }
 }

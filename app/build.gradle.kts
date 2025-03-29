@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -31,11 +32,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -61,17 +62,35 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
-    // https://mvnrepository.com/artifact/com.google.accompanist/accompanist-systemuicontroller
+    
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // Credential Manager dependencies
+    val credentialsManagerVersion = "1.5.0-alpha05"
+    implementation("androidx.credentials:credentials:$credentialsManagerVersion")
+    implementation("androidx.credentials:credentials-play-services-auth:$credentialsManagerVersion")
+    
+    // Google ID library
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.31.3-beta")
 
-
-    // Add navigation dependency
+    // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation(libs.androidx.espresso.core)
     implementation(libs.androidx.material.icons.extended)
 
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
 
-    // https://mvnrepository.com/artifact/com.google.accompanist/accompanist-pager-indicators
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
     runtimeOnly(libs.accompanist.pager.indicators)
 
     testImplementation(libs.junit)

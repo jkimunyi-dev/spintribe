@@ -1,10 +1,10 @@
 package com.android.onboardingscreen.screens.auth
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -19,7 +20,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.onboardingscreen.R
-import com.android.onboardingscreen.navigation.Screen
+import com.android.onboardingscreen.auth.AuthResponse
+import com.android.onboardingscreen.auth.AuthenticationManager
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +36,49 @@ fun SignIn(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    
+    val context = LocalContext.current
+    val authManager = remember { AuthenticationManager(context) }
+    val scope = rememberCoroutineScope()
+
+    // Validation function
+    fun validateInputs(): Boolean {
+        if (email.isBlank() || password.isBlank()) {
+            Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (password.length < 6) {
+            Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        return true
+    }
+
+    // Sign in function
+    fun signIn() {
+        if (!validateInputs()) return
+        
+        isLoading = true
+        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                isLoading = false
+                if (task.isSuccessful) {
+                    val user = task.result?.user
+                    if (user != null) {
+                        // Store user data
+                        authManager.storeUserData(user.uid, user.email ?: "")
+                        onSuccessfulSignIn()
+                    }
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Sign in failed: ${task.exception?.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+    }
 
     val instrumentSansSemiBold = FontFamily(
         Font(R.font.instrument_sans_semibold)
@@ -127,8 +175,24 @@ fun SignIn(
 
         Button(
             onClick = {
-                // After successful authentication
-                onSuccessfulSignIn()
+                if (validateInputs()) {
+                    isLoading = true
+                    scope.launch {
+                        authManager.loginWithEmail(email, password).collect { response ->
+                            isLoading = false
+                            when (response) {
+                                is AuthResponse.Success -> onSuccessfulSignIn()
+                                is AuthResponse.Error -> {
+                                    Toast.makeText(
+                                        context,
+                                        response.error.message ?: "Sign in failed",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        }
+                    }
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -137,9 +201,21 @@ fun SignIn(
             shape = RoundedCornerShape(50.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF173753)
-            )
+            ),
+            enabled = !isLoading
         ) {
-            Text("Log In", fontFamily = instrumentSansSemiBold)
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Text(
+                    "Log In",
+                    fontFamily = instrumentSansSemiBold,
+                    color = Color.White
+                )
+            }
         }
 
         Row(
