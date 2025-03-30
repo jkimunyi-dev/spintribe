@@ -30,7 +30,7 @@ Chuka Connect is a modern Android application designed to enhance campus life by
 
 1. Clone the repository:
 ```bash
-git clone [repository-url]
+git clone [https://github.com/jkimunyi-dev/spintribe.git]
 ```
 
 2. Open the project in Android Studio
@@ -51,6 +51,8 @@ git clone [repository-url]
 
 ## 🏗 Architecture
 
+![Chuka Connect Architecture](app/assets/Chuka-Connect.png)
+*[Source diagram file](app/assets/Chuka-Connect.drawio)*
 ### Tech Stack
 - **UI Framework**: Jetpack Compose
 - **Authentication**: Firebase Auth
