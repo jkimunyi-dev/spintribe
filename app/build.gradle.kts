@@ -8,14 +8,14 @@ plugins {
 android {
     namespace = "com.android.onboardingscreen"
     compileSdk = 35
-
+    
     defaultConfig {
         applicationId = "com.android.onboardingscreen"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
+        
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -24,7 +24,7 @@ android {
         // Enable MultiDex support
         multiDexEnabled = true
     }
-
+    
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -68,6 +68,9 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
     
+    // Gson for JSON
+    implementation("com.google.code.gson:gson:2.10.1")
+    
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     
@@ -78,24 +81,24 @@ dependencies {
     
     // Google ID library
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
-
+    
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.31.3-beta")
-
+    
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation(libs.androidx.espresso.core)
     implementation(libs.androidx.material.icons.extended)
-
+    
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
-
+    
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-
+    
     runtimeOnly(libs.accompanist.pager.indicators)
     
     // ZXing barcode scanning
@@ -106,7 +109,10 @@ dependencies {
     
     // MultiDex support
     implementation("androidx.multidex:multidex:2.0.1")
-
+    
+    // OkHttp for network requests
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

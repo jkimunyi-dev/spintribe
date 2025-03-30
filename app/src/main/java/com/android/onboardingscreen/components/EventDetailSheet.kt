@@ -1,7 +1,9 @@
 package com.android.onboardingscreen.components
 
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -15,6 +17,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,28 +25,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.onboardingscreen.R
-import com.android.onboardingscreen.screens.home.FeaturedEventData
-import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
-import java.time.format.DateTimeFormatter
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.annotation.DrawableRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.ui.platform.LocalContext
+import com.android.onboardingscreen.data.FeaturedEventData
 import com.android.onboardingscreen.data.RegisteredEventsManager
-import java.util.Locale
-import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.IOException
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.util.*
 
 private const val TAG = "EventDetailSheet"
+
+private val mpesaPhoneRegex = Regex("^0[0-9]{9}$") // Matches 0 followed by 9 digits
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -54,7 +62,6 @@ fun EventDetailSheet(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val eventsManager = remember { RegisteredEventsManager(context) }
     val pagerState = rememberPagerState(pageCount = { 3 })
     var fullName by remember { mutableStateOf("") }
     var selectedPaymentMethod by remember { mutableStateOf<String?>(null) }
@@ -69,8 +76,6 @@ fun EventDetailSheet(
         PaymentMethod("Bitcoin", R.drawable.bitcoin_logo)
     )
 
-    val isPaidEvent = true
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
@@ -78,7 +83,6 @@ fun EventDetailSheet(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // HorizontalPager takes most of the space but leaves room for indicators
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -88,7 +92,7 @@ fun EventDetailSheet(
                 when (page) {
                     0 -> EventDetailsPage(
                         event = event,
-                        isPaidEvent = isPaidEvent,
+                        isPaidEvent = event.isPaid,
                         onNextClick = {
                             scope.launch {
                                 pagerState.animateScrollToPage(1)
@@ -96,10 +100,10 @@ fun EventDetailSheet(
                         }
                     )
                     1 -> RegistrationPage(
-                        event = event, // Add this parameter
+                        event = event,
                         fullName = fullName,
                         onFullNameChange = { fullName = it },
-                        isPaidEvent = isPaidEvent,
+                        isPaidEvent = event.isPaid,
                         selectedPaymentMethod = selectedPaymentMethod,
                         paymentMethods = paymentMethods,
                         onPaymentMethodSelected = { selectedPaymentMethod = it },
@@ -115,7 +119,6 @@ fun EventDetailSheet(
                 }
             }
 
-            // Page indicators always at the bottom
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -148,7 +151,6 @@ private fun EventDetailsPage(
     isPaidEvent: Boolean,
     onNextClick: () -> Unit
 ) {
-    // Update the formatter to match the actual date format
     val formatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH)
     
     Column(
@@ -165,9 +167,11 @@ private fun EventDetailsPage(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Join us for an unforgettable experience at ${event.name}. " +
-                   "This event promises to bring together enthusiasts and professionals " +
-                   "for an amazing day of activities and networking.",
+            text = event.description.ifEmpty { 
+                "Join us for an unforgettable experience at ${event.name}. " +
+                "This event promises to bring together enthusiasts and professionals " +
+                "for an amazing day of activities and networking."
+            },
             fontSize = 16.sp
         )
 
@@ -190,12 +194,10 @@ private fun EventDetailsPage(
             )
         }
 
-        // Wrap the date parsing in a try-catch block for safety
         val daysRemaining = try {
             val eventDate = LocalDate.parse(event.date, formatter)
             ChronoUnit.DAYS.between(LocalDate.now(), eventDate)
         } catch (e: Exception) {
-            // Log the error and return a default value
             android.util.Log.e("EventDetailsPage", "Error parsing date: ${event.date}", e)
             0L
         }
@@ -207,58 +209,52 @@ private fun EventDetailsPage(
         )
 
         Text(
-            text = "156 people going",
+            text = "${event.totalAttendees} people going",
             fontSize = 14.sp
         )
 
-        // Attending section
-        Row(
-            modifier = Modifier.padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Attending:",
-                fontSize = 14.sp,
-                modifier = Modifier.padding(end = 8.dp)
-            )
-            
-            Box {
-                Image(
-                    painter = painterResource(id = R.drawable.person1),
-                    contentDescription = "Jimmy Kimunyi",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
+        if (event.attendees.isNotEmpty()) {
+            Row(
+                modifier = Modifier.padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Attending:",
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(end = 8.dp)
                 )
-                Image(
-                    painter = painterResource(id = R.drawable.person2),
-                    contentDescription = "Dennis Peter",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .offset(x = 16.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                
+                Box {
+                    event.attendees.take(2).forEachIndexed { index, attendee ->
+                        Image(
+                            painter = painterResource(id = R.drawable.person1), // Replace with actual image loading
+                            contentDescription = attendee.name,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .offset(x = (16 * index).dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+                
+                Text(
+                    text = event.attendees.take(2).joinToString(", ") { it.name },
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(start = 32.dp)
                 )
             }
-            
-            Text(
-                text = "Jimmy Kimunyi, Dennis Peter",
-                fontSize = 14.sp,
-                modifier = Modifier.padding(start = 32.dp)
-            )
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Event type indicator
         Surface(
             color = if (isPaidEvent) Color(0xFFFFE0B2) else Color(0xFFE8F5E9),
             shape = RoundedCornerShape(4.dp),
             modifier = Modifier.padding(vertical = 8.dp)
         ) {
             Text(
-                text = if (isPaidEvent) "Paid Event" else "Free Event",
+                text = if (isPaidEvent) "Paid Event (${event.price} KES)" else "Free Event",
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 color = if (isPaidEvent) Color(0xFFE65100) else Color(0xFF2E7D32)
             )
@@ -299,6 +295,60 @@ private fun RegistrationPage(
     // Add state for validation
     var isFormValid by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
+    var isProcessingPayment by remember { mutableStateOf(false) }
+    var paymentError by remember { mutableStateOf<String?>(null) }
+    
+    // Validate M-Pesa number
+    fun isValidMpesaNumber(number: String): Boolean {
+        return mpesaPhoneRegex.matches(number)
+    }
+
+    // Process M-Pesa payment
+    suspend fun processMpesaPayment(phoneNumber: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val json = JSONObject().apply {
+                    put("phone", phoneNumber)
+                    put("accountNumber", "TEST001") // Updated account number
+                    put("amount", "1")
+                }
+
+                val request = Request.Builder()
+                    .url("https://daraja-node.vercel.app/api/stkpush")
+                    .post(
+                        json.toString()
+                            .toRequestBody("application/json".toMediaType())
+                    )
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+                    when (response.code) {
+                        200 -> {
+                            paymentError = null
+                            Log.d(TAG, "M-Pesa payment initiated successfully")
+                        }
+                        400 -> {
+                            val errorMessage = try {
+                                JSONObject(responseBody ?: "").optString("message", "Bad Request")
+                            } catch (e: Exception) {
+                                "Bad Request"
+                            }
+                            throw IOException("Payment failed: $errorMessage")
+                        }
+                        else -> {
+                            throw IOException("Payment failed: ${response.message}")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error processing M-Pesa payment", e)
+                paymentError = e.message ?: "Payment failed"
+                throw e
+            }
+        }
+    }
 
     // Validation function
     fun validateForm(): Boolean {
@@ -406,34 +456,68 @@ private fun RegistrationPage(
                 )
             }
 
+            // Payment details input field
             selectedPaymentMethod?.let { method ->
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = paymentDetails,
-                    onValueChange = onPaymentDetailsChange,
-                    label = { 
-                        Text(when (method) {
-                            "M-PESA" -> "M-PESA Phone Number"
-                            "KCB", "NCBA" -> "Card Number"
-                            "USDC", "USDT" -> "Wallet Address"
-                            "Bitcoin" -> "Lightning Wallet Address"
-                            else -> "Payment Details"
-                        })
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = showError && paymentDetails.isBlank(),
-                    supportingText = if (showError && paymentDetails.isBlank()) {
-                        { Text("Payment details are required") }
-                    } else null,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = when (method) {
-                            "M-PESA" -> KeyboardType.Phone
-                            "KCB", "NCBA" -> KeyboardType.Number
-                            else -> KeyboardType.Text
-                        }
+                Column {
+                    OutlinedTextField(
+                        value = paymentDetails,
+                        onValueChange = { input ->
+                            when (method) {
+                                "M-PESA" -> {
+                                    if (input.length <= 10) {
+                                        onPaymentDetailsChange(input.filter { it.isDigit() })
+                                        paymentError = null
+                                    }
+                                }
+                                else -> onPaymentDetailsChange(input)
+                            }
+                        },
+                        label = { 
+                            Text(when (method) {
+                                "M-PESA" -> "M-PESA Phone Number"
+                                "KCB", "NCBA" -> "Card Number"
+                                "USDC", "USDT" -> "Wallet Address"
+                                "Bitcoin" -> "Lightning Wallet Address"
+                                else -> "Payment Details"
+                            })
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = when (method) {
+                            "M-PESA" -> showError && (!paymentDetails.isBlank() && !isValidMpesaNumber(paymentDetails)) || paymentError != null
+                            else -> showError && paymentDetails.isBlank()
+                        },
+                        supportingText = when {
+                            method == "M-PESA" && showError && !paymentDetails.isBlank() && !isValidMpesaNumber(paymentDetails) -> {
+                                { Text("Enter valid M-Pesa number (e.g., 0712345678)") }
+                            }
+                            showError && paymentDetails.isBlank() -> {
+                                { Text("Payment details are required") }
+                            }
+                            else -> null
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = when (method) {
+                                "M-PESA" -> KeyboardType.Phone
+                                "KCB", "NCBA" -> KeyboardType.Number
+                                else -> KeyboardType.Text
+                            }
+                        )
                     )
-                )
+
+                    // Display payment error if any
+                    if (method == "M-PESA") {
+                        paymentError?.let { error ->
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -443,26 +527,36 @@ private fun RegistrationPage(
             onClick = {
                 showError = true
                 if (isFormValid) {
-                    Log.d(TAG, "Registration button clicked for event: ${event.name}")
                     scope.launch {
                         try {
-                            Log.d(TAG, "Starting registration process...")
+                            isProcessingPayment = true
+                            paymentError = null // Clear any previous errors
+                            
+                            // Process M-Pesa payment if selected
+                            if (selectedPaymentMethod == "M-PESA") {
+                                processMpesaPayment(paymentDetails)
+                            }
+                            
+                            // Continue with registration
                             eventsManager.registerForEvent(event, phoneNumber)
-                            Log.d(TAG, "Registration successful")
                             
                             Toast.makeText(
                                 context,
                                 "Successfully registered for ${event.name}",
                                 Toast.LENGTH_SHORT
                             ).show()
+                            
                             onNextClick()
                         } catch (e: Exception) {
-                            Log.e(TAG, "Registration failed", e)
+                            Log.e(TAG, "Registration/Payment failed", e)
+                            paymentError = e.message ?: "Payment failed"
                             Toast.makeText(
                                 context,
-                                "Failed to register: ${e.message}",
+                                "Failed: ${e.message}",
                                 Toast.LENGTH_LONG
                             ).show()
+                        } finally {
+                            isProcessingPayment = false
                         }
                     }
                 }
@@ -470,9 +564,16 @@ private fun RegistrationPage(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
-            enabled = isFormValid
+            enabled = isFormValid && !isProcessingPayment
         ) {
-            Text("Continue")
+            if (isProcessingPayment) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("Continue")
+            }
         }
     }
 }
@@ -482,54 +583,38 @@ private fun SuccessPage() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Default.CheckCircle,
+            painter = painterResource(id = R.drawable.trophy),
             contentDescription = "Success",
-            modifier = Modifier.size(96.dp),
+            modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.primary
         )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
         Text(
             text = "Registration Successful!",
-            fontSize = 28.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
         Text(
-            text = "You're all set for the event!",
-            fontSize = 18.sp
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "A confirmation email has been sent to your registered email address with all the event details.",
+            text = "You have successfully registered for the event.",
             fontSize = 16.sp,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        Text(
-            text = "See you there! 🎉",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Medium
+            textAlign = TextAlign.Center
         )
     }
 }
 
 data class PaymentMethod(
     val name: String,
-    val icon: Int
+    @DrawableRes val icon: Int
 )
 
 @Composable

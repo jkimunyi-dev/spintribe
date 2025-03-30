@@ -31,12 +31,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.onboardingscreen.R
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalContext
 import com.android.onboardingscreen.components.EventDetailSheet
 import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalTime
 import java.time.Duration
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
+import com.android.onboardingscreen.data.EventData
+import com.android.onboardingscreen.data.EventStatus
+import com.android.onboardingscreen.data.FeaturedEventData
+import com.android.onboardingscreen.utils.JsonLoader
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,9 +71,14 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             trackType = "Standard",     // Default track type
             averageSpeed = "N/A",
             distance = event.distance,
-            backgroundColor = Color(0xFF1E7A56),
+            backgroundColorString = "#1E7A56", // Add this parameter
             category = event.category,
-            endTime = event.endTime     // Add this line
+            endTime = event.endTime,
+            description = "", // Add default empty description
+            price = 0,       // Add default price
+            isPaid = false,  // Add default isPaid
+            attendees = emptyList(), // Add empty attendees list
+            totalAttendees = 0      // Add default total attendees
         )
         showEventDetail = true
     }
@@ -80,134 +90,14 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     val skyBlue = Color(0xFF64B5F6)
     val sunsetOrange = Color(0xFFFF7043)
 
-    val featuredEvents = remember {
-        listOf(
-            FeaturedEventData(
-                name = "Camp Carnelley's",
-                date = "16 Mar 2025",
-                startLocation = "Lower Kwa Muhia",
-                trackType = "Circular",
-                averageSpeed = "10 km/h",
-                distance = "32.3 km",
-                backgroundColor = Color(0xFF1F2937),
-                category = "Sports",
-                endTime = "18:00"
-            ),
-            FeaturedEventData(
-                name = "Mt. Longonot Festival",
-                date = "15 Mar 2025",
-                startLocation = "Mt. Longonot",
-                trackType = "Mountain Trail",
-                averageSpeed = "5 km/h",
-                distance = "15.0 km",
-                backgroundColor = Color(0xFF1E7A56),
-                category = "Adventure",
-                endTime = "18:00"
-            ),
-            FeaturedEventData(
-                name = "Maasai Cultural Festival",
-                date = "15 May 2025",
-                startLocation = "Maasai Mara",
-                trackType = "Circular",
-                averageSpeed = "3 km/h",
-                distance = "5.0 km",
-                backgroundColor = sunsetOrange,
-                category = "Cultural",
-                endTime = "18:00"
-            ),
-            FeaturedEventData(
-                name = "Tech Innovation Summit",
-                date = "30 Mar 2025",
-                startLocation = "KICC Nairobi",
-                trackType = "Indoor",
-                averageSpeed = "N/A",
-                distance = "1.0 km",
-                backgroundColor = skyBlue,
-                category = "Academic",
-                endTime = "18:00"
-            ),
-            FeaturedEventData(
-                name = "Coding Bootcamp",
-                date = "10 Apr 2025",
-                startLocation = "iHub Nairobi",
-                trackType = "Indoor",
-                averageSpeed = "N/A",
-                distance = "0.5 km",
-                backgroundColor = Color(0xFF6200EA),
-                category = "Tech",
-                endTime = "18:00"
-            ),
-            FeaturedEventData(
-                name = "Jazz Festival",
-                date = "25 May 2025",
-                startLocation = "Carnivore Grounds",
-                trackType = "Circular",
-                averageSpeed = "2 km/h",
-                distance = "3.0 km",
-                backgroundColor = Color(0xFFE91E63),
-                category = "Music",
-                endTime = "18:00"
-            ),
-            FeaturedEventData(
-                name = "Food & Wine Festival",
-                date = "8 Jun 2025",
-                startLocation = "Westlands",
-                trackType = "Indoor",
-                averageSpeed = "N/A",
-                distance = "2.0 km",
-                backgroundColor = Color(0xFFFF6F00),
-                category = "Culinary",
-                endTime = "18:00"
-            ),
-            FeaturedEventData(
-                name = "Job Fair 2025",
-                date = "12 Apr 2025",
-                startLocation = "SARIT Centre",
-                trackType = "Indoor",
-                averageSpeed = "N/A",
-                distance = "1.5 km",
-                backgroundColor = Color(0xFF2E7D32),
-                category = "Career",
-                endTime = "18:00"
-            ),
-            FeaturedEventData(
-                name = "Tree Planting Drive",
-                date = "20 Apr 2025",
-                startLocation = "Karura Forest",
-                trackType = "Linear",
-                averageSpeed = "4 km/h",
-                distance = "8.0 km",
-                backgroundColor = primaryGreen.copy(alpha = 0.8f),
-                category = "Volunteer",
-                endTime = "18:00"
-            ),
-            FeaturedEventData(
-                name = "Book Club Meeting",
-                date = "5 May 2025",
-                startLocation = "Alliance Française",
-                trackType = "Indoor",
-                averageSpeed = "N/A",
-                distance = "0.3 km",
-                backgroundColor = Color(0xFF795548),
-                category = "Club",
-                endTime = "18:00"
-            )
-        )
-    }
-
-    val allEvents = remember {
-        mutableStateListOf(
-            EventData(
-                name = "Tech Innovation Summit",
-                date = "30 Mar 2025",
-                distance = "1.0 km",
-                status = EventStatus.OPEN,
-                category = "Tech",
-                endTime = "18:00" // 6 PM
-            ),
-            // Add more events here
-        )
-    }
+    val context = LocalContext.current
+    val eventsData = remember { JsonLoader.loadEventsData(context) }
+    
+    val featuredEvents = remember { eventsData.featuredEvents }
+    
+    val allEvents = remember { mutableStateListOf<EventData>().apply {
+        addAll(eventsData.regularEvents)
+    }}
 
     // Filter events based on search query, selected tab, and category
     val filteredEvents = remember(searchQuery, selectedTab, selectedCategory) {
@@ -244,11 +134,12 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                     title = {
                         val currentUser = FirebaseAuth.getInstance().currentUser
                         Text(
-                            "Hello ${currentUser?.email?.substringBefore('@') ?: "there"}",
+                            text = "Hello ${currentUser?.email?.substringBefore('@') ?: "there"}",
                             fontFamily = instrumentSans,
                             fontWeight = FontWeight.Bold,
                             fontSize = 24.sp,
-                            color = darkBrown
+                            color = darkBrown,
+                            modifier = Modifier.padding(top = 12.dp)  // Added padding top
                         )
                     },
                     actions = {
@@ -442,19 +333,6 @@ fun HomeScreen(modifier: Modifier = Modifier) {
         )
     }
 }
-
-data class FeaturedEventData(
-    val name: String,
-    val date: String,
-    val startLocation: String,
-    val trackType: String,
-    val averageSpeed: String,
-    val distance: String,
-    val backgroundColor: Color,
-    val category: String,
-    val endTime: String, // Add end time
-    val description: String = "" // Add description
-)
 
 data class EventData(
     val name: String,
