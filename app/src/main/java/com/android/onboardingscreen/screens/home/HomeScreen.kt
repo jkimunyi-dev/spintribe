@@ -32,6 +32,11 @@ import androidx.compose.ui.unit.sp
 import com.android.onboardingscreen.R
 import androidx.compose.foundation.clickable
 import com.android.onboardingscreen.components.EventDetailSheet
+import com.google.firebase.auth.FirebaseAuth
+import java.time.LocalTime
+import java.time.Duration
+import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.delay
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,7 +67,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             averageSpeed = "N/A",
             distance = event.distance,
             backgroundColor = Color(0xFF1E7A56),
-            category = event.category
+            category = event.category,
+            endTime = event.endTime     // Add this line
         )
         showEventDetail = true
     }
@@ -76,125 +82,130 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
     val featuredEvents = remember {
         listOf(
-            // Sports Events
             FeaturedEventData(
-                "Camp Carnelley's",
-                "16 Mar 2025",  // Make sure dates follow the format "d MMM yyyy"
-                "Lower Kwa Muhia",
-                "Circular",
-                "10 km/h",
-                "32.3 km",
-                Color(0xFF1F2937),
-                "Sports"
+                name = "Camp Carnelley's",
+                date = "16 Mar 2025",
+                startLocation = "Lower Kwa Muhia",
+                trackType = "Circular",
+                averageSpeed = "10 km/h",
+                distance = "32.3 km",
+                backgroundColor = Color(0xFF1F2937),
+                category = "Sports",
+                endTime = "18:00"
             ),
             FeaturedEventData(
-                "Mt. Longonot Festival",  // Changed name to include "Festival"
-                "15 Mar 2025",
-                "Mt. Longonot",
-                "Mountain Trail",
-                "5 km/h",
-                "15.0 km",
-                Color(0xFF1E7A56),
-                "Adventure"
+                name = "Mt. Longonot Festival",
+                date = "15 Mar 2025",
+                startLocation = "Mt. Longonot",
+                trackType = "Mountain Trail",
+                averageSpeed = "5 km/h",
+                distance = "15.0 km",
+                backgroundColor = Color(0xFF1E7A56),
+                category = "Adventure",
+                endTime = "18:00"
             ),
-            // Cultural Events
             FeaturedEventData(
-                "Maasai Cultural Festival",
-                "15 May 2025",
-                "Maasai Mara",
-                "Circular",
-                "3 km/h",
-                "5.0 km",
-                sunsetOrange,
-                "Cultural"
+                name = "Maasai Cultural Festival",
+                date = "15 May 2025",
+                startLocation = "Maasai Mara",
+                trackType = "Circular",
+                averageSpeed = "3 km/h",
+                distance = "5.0 km",
+                backgroundColor = sunsetOrange,
+                category = "Cultural",
+                endTime = "18:00"
             ),
-            // Academic Events
             FeaturedEventData(
-                "Tech Innovation Summit",
-                "30 Mar 2025",
-                "KICC Nairobi",
-                "Indoor",
-                "N/A",
-                "1.0 km",
-                skyBlue,
-                "Academic"
+                name = "Tech Innovation Summit",
+                date = "30 Mar 2025",
+                startLocation = "KICC Nairobi",
+                trackType = "Indoor",
+                averageSpeed = "N/A",
+                distance = "1.0 km",
+                backgroundColor = skyBlue,
+                category = "Academic",
+                endTime = "18:00"
             ),
-            // Tech Events
             FeaturedEventData(
-                "Coding Bootcamp",
-                "10 Apr 2025",
-                "iHub Nairobi",
-                "Indoor",
-                "N/A",
-                "0.5 km",
-                Color(0xFF6200EA),
-                "Tech"
+                name = "Coding Bootcamp",
+                date = "10 Apr 2025",
+                startLocation = "iHub Nairobi",
+                trackType = "Indoor",
+                averageSpeed = "N/A",
+                distance = "0.5 km",
+                backgroundColor = Color(0xFF6200EA),
+                category = "Tech",
+                endTime = "18:00"
             ),
-            // Music Events
             FeaturedEventData(
-                "Jazz Festival",
-                "25 May 2025",
-                "Carnivore Grounds",
-                "Circular",
-                "2 km/h",
-                "3.0 km",
-                Color(0xFFE91E63),
-                "Music"
+                name = "Jazz Festival",
+                date = "25 May 2025",
+                startLocation = "Carnivore Grounds",
+                trackType = "Circular",
+                averageSpeed = "2 km/h",
+                distance = "3.0 km",
+                backgroundColor = Color(0xFFE91E63),
+                category = "Music",
+                endTime = "18:00"
             ),
-            // Culinary Events
             FeaturedEventData(
-                "Food & Wine Festival",
-                "8 Jun 2025",
-                "Westlands",
-                "Indoor",
-                "N/A",
-                "2.0 km",
-                Color(0xFFFF6F00),
-                "Culinary"
+                name = "Food & Wine Festival",
+                date = "8 Jun 2025",
+                startLocation = "Westlands",
+                trackType = "Indoor",
+                averageSpeed = "N/A",
+                distance = "2.0 km",
+                backgroundColor = Color(0xFFFF6F00),
+                category = "Culinary",
+                endTime = "18:00"
             ),
-            // Career Events
             FeaturedEventData(
-                "Job Fair 2025",
-                "12 Apr 2025",
-                "SARIT Centre",
-                "Indoor",
-                "N/A",
-                "1.5 km",
-                Color(0xFF2E7D32),
-                "Career"
+                name = "Job Fair 2025",
+                date = "12 Apr 2025",
+                startLocation = "SARIT Centre",
+                trackType = "Indoor",
+                averageSpeed = "N/A",
+                distance = "1.5 km",
+                backgroundColor = Color(0xFF2E7D32),
+                category = "Career",
+                endTime = "18:00"
             ),
-            // Volunteer Events
             FeaturedEventData(
-                "Tree Planting Drive",
-                "20 Apr 2025",
-                "Karura Forest",
-                "Linear",
-                "4 km/h",
-                "8.0 km",
-                primaryGreen.copy(alpha = 0.8f),
-                "Volunteer"
+                name = "Tree Planting Drive",
+                date = "20 Apr 2025",
+                startLocation = "Karura Forest",
+                trackType = "Linear",
+                averageSpeed = "4 km/h",
+                distance = "8.0 km",
+                backgroundColor = primaryGreen.copy(alpha = 0.8f),
+                category = "Volunteer",
+                endTime = "18:00"
             ),
-            // Club Events
             FeaturedEventData(
-                "Book Club Meeting",
-                "5 May 2025",
-                "Alliance Française",
-                "Indoor",
-                "N/A",
-                "0.3 km",
-                Color(0xFF795548),
-                "Club"
+                name = "Book Club Meeting",
+                date = "5 May 2025",
+                startLocation = "Alliance Française",
+                trackType = "Indoor",
+                averageSpeed = "N/A",
+                distance = "0.3 km",
+                backgroundColor = Color(0xFF795548),
+                category = "Club",
+                endTime = "18:00"
             )
         )
     }
 
     val allEvents = remember {
-        listOf(
-            EventData("Camp Carnelley's", "16 Mar 2025", "32.3 km", EventStatus.OPEN, "Sports"),
-            EventData("Lake Naivasha Resort", "22 Apr 2025", "45.0 km", EventStatus.OPEN, "Cultural"),
-            EventData("Hell's Gate National Park", "05 May 2025", "28.7 km", EventStatus.OPEN, "Sports"),
-            EventData("Mt. Longonot Hike", "18 Jun 2025", "56.2 km", EventStatus.OPEN, "Sports"),
-            EventData("Nairobi National Park", "10 Jan 2025", "15.4 km", EventStatus.CLOSED, "Cultural")
+        mutableStateListOf(
+            EventData(
+                name = "Tech Innovation Summit",
+                date = "30 Mar 2025",
+                distance = "1.0 km",
+                status = EventStatus.OPEN,
+                category = "Tech",
+                endTime = "18:00" // 6 PM
+            ),
+            // Add more events here
         )
     }
 
@@ -231,8 +242,9 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             item {
                 TopAppBar(
                     title = {
+                        val currentUser = FirebaseAuth.getInstance().currentUser
                         Text(
-                            "For You",
+                            "Hello ${currentUser?.email?.substringBefore('@') ?: "there"}",
                             fontFamily = instrumentSans,
                             fontWeight = FontWeight.Bold,
                             fontSize = 24.sp,
@@ -439,7 +451,9 @@ data class FeaturedEventData(
     val averageSpeed: String,
     val distance: String,
     val backgroundColor: Color,
-    val category: String  // Add category field
+    val category: String,
+    val endTime: String, // Add end time
+    val description: String = "" // Add description
 )
 
 data class EventData(
@@ -447,12 +461,42 @@ data class EventData(
     val date: String,
     val distance: String,
     val status: EventStatus,
-    val category: String
+    val category: String,
+    val endTime: String // Add end time
 )
 
 enum class EventStatus {
     OPEN,
     CLOSED
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun EventTimer(endTime: String) {
+    var timeRemaining by remember { mutableStateOf("") }
+    
+    LaunchedEffect(endTime) {
+        while(true) {
+            val formatter = DateTimeFormatter.ofPattern("HH:mm")
+            val targetTime = LocalTime.parse(endTime, formatter)
+            val currentTime = LocalTime.now()
+            
+            val duration = Duration.between(currentTime, targetTime)
+            timeRemaining = if (duration.isNegative) {
+                "Event ended"
+            } else {
+                String.format("%02d:%02d", duration.toHours(), duration.toMinutesPart())
+            }
+            
+            delay(1000) // Update every second
+        }
+    }
+    
+    Text(
+        text = timeRemaining,
+        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.bodyMedium
+    )
 }
 
 @Composable

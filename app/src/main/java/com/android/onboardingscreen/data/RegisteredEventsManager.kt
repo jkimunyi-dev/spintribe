@@ -32,7 +32,10 @@ data class RegisteredEvent(
     val distance: String = "",        // Made optional with default value
     val category: String = "",        // Made optional with default value
     val trackType: String = "",       // Made optional with default value
-    val description: String = ""      // Made optional with default value
+    val description: String = "",     // Made optional with default value
+    val qrCodeData: String = "",      // New field for QR code data
+    val userEmail: String = "",       // Added field
+    val phoneNumber: String = ""      // Added field
 )
 
 @kotlinx.serialization.Serializable
@@ -49,17 +52,28 @@ class RegisteredEventsManager(private val context: Context) {
     private val notificationsKey = stringPreferencesKey("notifications")
 
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun registerForEvent(event: FeaturedEventData) {
+    suspend fun registerForEvent(event: FeaturedEventData, phoneNumber: String) {
         try {
             Log.d(TAG, "Starting event registration for: ${event.name}")
             
-            // Clear existing data (temporary fix for migration)
-            context.eventDataStore.edit { preferences ->
-                preferences.remove(registeredEventsKey)
-            }
-            
             val currentDateTime = LocalDateTime.now()
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            
+            // Get current user email
+            val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
+            
+            // Generate QR code data
+            val qrCodeData = buildString {
+                append("Event: ${event.name}\n")
+                append("Date: ${event.date}\n")
+                append("Location: ${event.startLocation}\n")
+                append("Category: ${event.category}\n")
+                append("Distance: ${event.distance}\n")
+                append("Registration Time: ${currentDateTime.format(formatter)}\n")
+                append("Participant Email: $userEmail\n")
+                append("Phone Number: $phoneNumber\n")
+                append("ID: ${event.name.hashCode()}")
+            }
             
             val registeredEvent = RegisteredEvent(
                 eventId = event.name.hashCode().toString(),
@@ -72,7 +86,10 @@ class RegisteredEventsManager(private val context: Context) {
                 trackType = event.trackType,
                 description = "Join us for an unforgettable experience at ${event.name}. " +
                          "This event promises to bring together enthusiasts and professionals " +
-                         "for an amazing day of activities and networking."
+                         "for an amazing day of activities and networking.",
+                qrCodeData = qrCodeData,
+                userEmail = userEmail,
+                phoneNumber = phoneNumber
             )
 
             Log.d(TAG, "Created RegisteredEvent object: $registeredEvent")
@@ -91,7 +108,17 @@ class RegisteredEventsManager(private val context: Context) {
                     
                     Log.d(TAG, "Successfully decoded existing events, count: ${existingEvents.size}")
                     
-                    val updatedEvents = existingEvents + registeredEvent
+                    // Check if the event is already registered to avoid duplicates
+                    val eventAlreadyExists = existingEvents.any { it.eventId == registeredEvent.eventId }
+                    
+                    val updatedEvents = if (eventAlreadyExists) {
+                        Log.d(TAG, "Event already registered, not adding duplicate")
+                        existingEvents
+                    } else {
+                        Log.d(TAG, "Adding new event to the list")
+                        existingEvents + registeredEvent
+                    }
+                    
                     val updatedJson = Json.encodeToString(updatedEvents)
                     Log.d(TAG, "Encoded updated events JSON: $updatedJson")
                     
@@ -139,6 +166,16 @@ class RegisteredEventsManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching registered events", e)
             emptyList()
+        }
+    }
+
+    suspend fun getEventById(eventId: String): RegisteredEvent? {
+        return try {
+            val events = getRegisteredEvents()
+            events.find { it.eventId == eventId }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching event by ID", e)
+            null
         }
     }
 

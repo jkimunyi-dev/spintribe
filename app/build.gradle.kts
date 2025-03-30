@@ -20,6 +20,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        
+        // Enable MultiDex support
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -34,6 +37,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Enable desugaring
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -92,6 +97,15 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     runtimeOnly(libs.accompanist.pager.indicators)
+    
+    // ZXing barcode scanning
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    
+    // Desugaring support
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.2")
+    
+    // MultiDex support
+    implementation("androidx.multidex:multidex:2.0.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -1,17 +1,16 @@
 <resources>
-    <string name="app_name">Spiin Tribe</string>
-    <string name="onBoardingTitle1">Join the Ride, Join the Tribe</string>
-    <string name="onBoardingText1">Ride, Connect and Explore</string>
+    <string name="app_name">Chuka Connect</string>
+    <string name="onBoardingTitle1">Welcome to Chuka Connect</string>
+    <string name="onBoardingText1">Your gateway to campus events and activities</string>
 
-    <string name="onBoardingTitle2">Discover Exciting Events</string>
-    <string name="onBoardingText2">Participate in group rides, competitions and events</string>
+    <string name="onBoardingTitle2">Explore Diverse Events</string>
+    <string name="onBoardingText2">From academic seminars to cultural festivals, find events that interest you</string>
 
-    <string name="onBoardingTitle3">Build Connections</string>
-    <string name="onBoardingText3">Make friends, share experiences, and grow together</string>
+    <string name="onBoardingTitle3">Stay Informed</string>
+    <string name="onBoardingText3">Receive timely updates and never miss out on campus happenings</string>
 
-
-    <string name="onBoardingTitle4">Welcome to Spin Tribe</string>
-    <string name="onBoardingText4">Start Riding \n Connect with fellow riders, join exciting events and explore new paths</string>
+    <string name="onBoardingTitle4">Join the Community</string>
+    <string name="onBoardingText4">Connect with fellow students and enrich your campus experience</string>
     <string name="web_client_id">51141391358-b750a1jvk6qt2g7o0upcm656d27jh7bi.apps.googleusercontent.com</string>
 
 </resources>

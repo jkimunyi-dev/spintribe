@@ -42,162 +42,142 @@ fun ProfileScreen(navController: NavController) {
     val authManager = remember { AuthenticationManager(context) }
     val currentUser = remember { FirebaseAuth.getInstance().currentUser }
     val userEmail = currentUser?.email ?: "No email"
+    var showSignOutDialog by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("Posts", "Achievements", "Friends")
 
-    Column(
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .fillMaxSize()
+            .background(Color.White)
     ) {
-        // Profile Image
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(Color.LightGray)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.profile),
-                contentDescription = "Profile Picture",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Username (Email)
-        Text(
-            text = userEmail,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Sign out button
-        Button(
-            onClick = {
-                authManager.signOut()
-                navController.navigate(Screen.Onboarding.route) {
-                    popUpTo(Screen.Home.route) { inclusive = true }
-                }
-            }
-        ) {
-            Text("Sign Out")
-        }
-
-        var selectedTab by remember { mutableStateOf(0) }
-        val tabs = listOf("Posts", "Achievements", "Friends")
-
-        Box(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Top Bar with Edit and More Options
-                item {
-                    TopAppBar(
-                        title = { },
-                        actions = {
-                            IconButton(onClick = { /* TODO */ }) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Profile"
-                                )
-                            }
-                            IconButton(onClick = { /* TODO */ }) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "More Options"
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.White
-                        )
+            // Top Bar with Edit and More Options
+            item {
+                TopAppBar(
+                    title = { },
+                    actions = {
+                        IconButton(onClick = { /* TODO */ }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Profile"
+                            )
+                        }
+                        IconButton(onClick = { showSignOutDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More Options"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.White
                     )
-                }
-
-                // Profile Section
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Profile Image
-                        Box(
-                            modifier = Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
-                                .background(Color.LightGray)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.profile),
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Username
-                        Text(
-                            text = "@baraka",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
-                }
-
-                // Tabs
-                item {
-                    TabRow(
-                        selectedTabIndex = selectedTab,
-                        containerColor = Color.White,
-                        contentColor = Color(0xFF173753),
-                        indicator = { tabPositions ->
-                            TabRowDefaults.Indicator(
-                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                height = 2.dp,
-                                color = Color(0xFF173753)
-                            )
-                        }
-                    ) {
-                        tabs.forEachIndexed { index, title ->
-                            Tab(
-                                selected = selectedTab == index,
-                                onClick = { selectedTab = index },
-                                text = { Text(text = title) }
-                            )
-                        }
-                    }
-                }
-
-                // Content based on selected tab
-                item {
-                    when (selectedTab) {
-                        0 -> PostsGrid()
-                        1 -> AchievementsGrid()
-                        2 -> FriendsGrid()
-                    }
-                }
-
-                // Add space at the bottom for better scrolling experience
-                item { Spacer(modifier = Modifier.height(80.dp)) }
+                )
             }
+
+            // Profile Section
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .background(Color.LightGray)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.profile),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = userEmail,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+
+            // Tabs
+            item {
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF173753),
+                    indicator = { tabPositions ->
+                        TabRowDefaults.Indicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            height = 2.dp,
+                            color = Color(0xFF173753)
+                        )
+                    }
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(text = title) }
+                        )
+                    }
+                }
+            }
+
+            // Content based on selected tab
+            item {
+                when (selectedTab) {
+                    0 -> PostsGrid()
+                    1 -> AchievementsGrid()
+                    2 -> FriendsGrid()
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
+    }
+    
+    if (showSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showSignOutDialog = false },
+            title = { Text("Sign Out") },
+            text = { Text("Are you sure you want to sign out?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSignOutDialog = false
+                        authManager.signOut()
+                        navController.navigate(Screen.Onboarding.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text("Sign Out")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showSignOutDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -208,7 +188,7 @@ fun PostsGrid() {
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.height(400.dp) // Set a fixed height for the grid
+        modifier = Modifier.height(400.dp)
     ) {
         items(6) { index ->
             val imageRes = when (index % 3) {
@@ -226,7 +206,7 @@ fun AchievementsGrid() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(400.dp) // Match height with other tabs
+            .height(400.dp)
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -251,7 +231,7 @@ fun FriendsGrid() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(400.dp) // Match height with other tabs
+            .height(400.dp)
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -274,8 +254,7 @@ fun FriendsGrid() {
 @Composable
 fun GridImage(modifier: Modifier = Modifier, imageRes: Int) {
     Card(
-        modifier = modifier
-            .aspectRatio(1f),
+        modifier = modifier.aspectRatio(1f),
         shape = RoundedCornerShape(8.dp)
     ) {
         Image(

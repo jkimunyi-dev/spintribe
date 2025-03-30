@@ -279,7 +279,7 @@ private fun EventDetailsPage(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RegistrationPage(
-    event: FeaturedEventData, // Add this parameter
+    event: FeaturedEventData,
     fullName: String,
     onFullNameChange: (String) -> Unit,
     isPaidEvent: Boolean,
@@ -293,6 +293,25 @@ private fun RegistrationPage(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val eventsManager = remember { RegisteredEventsManager(context) }
+    
+    // Add state for phone number
+    var phoneNumber by remember { mutableStateOf("") }
+    // Add state for validation
+    var isFormValid by remember { mutableStateOf(false) }
+    var showError by remember { mutableStateOf(false) }
+
+    // Validation function
+    fun validateForm(): Boolean {
+        return fullName.isNotBlank() &&
+               phoneNumber.isNotBlank() && 
+               phoneNumber.length >= 10 &&
+               (!isPaidEvent || (selectedPaymentMethod != null && paymentDetails.isNotBlank()))
+    }
+
+    // Update validation when form changes
+    LaunchedEffect(fullName, phoneNumber, selectedPaymentMethod, paymentDetails) {
+        isFormValid = validateForm()
+    }
 
     Column(
         modifier = Modifier
@@ -303,7 +322,32 @@ private fun RegistrationPage(
             value = fullName,
             onValueChange = onFullNameChange,
             label = { Text("Full Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = showError && fullName.isBlank(),
+            supportingText = if (showError && fullName.isBlank()) {
+                { Text("Name is required") }
+            } else null
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Add phone number field
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = { 
+                if (it.length <= 12) { // Limit phone number length
+                    phoneNumber = it.filter { char -> char.isDigit() } // Only allow digits
+                }
+            },
+            label = { Text("Phone Number") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            modifier = Modifier.fillMaxWidth(),
+            isError = showError && (phoneNumber.isBlank() || phoneNumber.length < 10),
+            supportingText = if (showError && phoneNumber.isBlank()) {
+                { Text("Phone number is required") }
+            } else if (showError && phoneNumber.length < 10) {
+                { Text("Enter a valid phone number") }
+            } else null
         )
 
         if (isPaidEvent) {
@@ -353,6 +397,15 @@ private fun RegistrationPage(
                 }
             }
 
+            if (showError && selectedPaymentMethod == null) {
+                Text(
+                    text = "Please select a payment method",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
             selectedPaymentMethod?.let { method ->
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -369,6 +422,10 @@ private fun RegistrationPage(
                         })
                     },
                     modifier = Modifier.fillMaxWidth(),
+                    isError = showError && paymentDetails.isBlank(),
+                    supportingText = if (showError && paymentDetails.isBlank()) {
+                        { Text("Payment details are required") }
+                    } else null,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = when (method) {
                             "M-PESA" -> KeyboardType.Phone
@@ -384,36 +441,36 @@ private fun RegistrationPage(
 
         Button(
             onClick = {
-                Log.d(TAG, "Registration button clicked for event: ${event.name}")
-                scope.launch {
-                    try {
-                        Log.d(TAG, "Starting registration process...")
-                        eventsManager.registerForEvent(event)
-                        Log.d(TAG, "Registration successful")
-                        
-                        Toast.makeText(
-                            context,
-                            "Successfully registered for ${event.name}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        onNextClick()
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Registration failed", e)
-                        val errorMessage = e.message ?: "Unknown error occurred"
-                        Log.e(TAG, "Error message: $errorMessage")
-                        Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
-                        
-                        Toast.makeText(
-                            context,
-                            "Failed to register: $errorMessage",
-                            Toast.LENGTH_LONG
-                        ).show()
+                showError = true
+                if (isFormValid) {
+                    Log.d(TAG, "Registration button clicked for event: ${event.name}")
+                    scope.launch {
+                        try {
+                            Log.d(TAG, "Starting registration process...")
+                            eventsManager.registerForEvent(event, phoneNumber)
+                            Log.d(TAG, "Registration successful")
+                            
+                            Toast.makeText(
+                                context,
+                                "Successfully registered for ${event.name}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            onNextClick()
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Registration failed", e)
+                            Toast.makeText(
+                                context,
+                                "Failed to register: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(48.dp),
+            enabled = isFormValid
         ) {
             Text("Continue")
         }
